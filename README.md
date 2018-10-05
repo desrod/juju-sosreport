@@ -30,9 +30,9 @@ After the collection is done, it will fetch those files from the units and put t
 
 ### TODO
 
-- auto-upload of the sosreports to the Canonical SFTP Support portal
-- Removal of the sosreports from the units after they've been fetched (+checksum) 
-- Better regex for accurate file naming conventions of the remote sosreport files
+[ ] auto-upload of the sosreports to the Canonical SFTP Support portal
+[x] Removal of the sosreports from the units after they've been fetched (+checksum) 
+[ ] Better regex for accurate file naming conventions of the remote sosreport files
 
 ## Authors
 
