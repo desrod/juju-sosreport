@@ -1,0 +1,67 @@
+#####################################################################
+#        _._   
+#       /_ _`.      (c) 2016-2018, David A. Desrosiers
+#       (.(.)|      david dot desrosiers at canonical dot com
+#       |\_/'|   
+#       )____`\     If you find this useful, please drop me     
+#      //_V _\ \    an email, or send me bug reports if you find
+#     ((  |  `(_)   problems with it.
+#    / \> '   / \
+#    \  \.__./  /   Ansible playbook for pulling sosreports from
+#     `-'    `-'    a juju-deployed cluster of units
+#
+#####################################################################
+# Make sure you pass in the correct '-l <host_group>' param to limit
+# collection of the sosreports for those nodes, else it will do ALL
+# nodes in the model
+- hosts: all
+
+  remote_user: ubuntu
+  become: yes
+
+  vars: 
+    # Basic knobs and dials to customize sosreport's collection
+    - sos_cmd: sosreport
+    - sos_opt: -a --all-logs --quiet --no-report --batch
+
+    # Limit the file fetch operation to today's reports
+    - date_frag: "{{ lookup('pipe','date +%Y%m%d') }}"
+
+    # Salesforce Case Number
+    - case_id: 0011223344
+
+    # Where to cache the sosreports during/after collection
+    - temp_dir: /tmp
+
+  tasks:
+    - name: Create sosreports from each juju unit
+      shell: '{{ sos_cmd }} {{ sos_opt }} --tmp-dir={{ temp_dir }} --name={{ juju_unit }} --case-id={{ case_id }}'
+
+    - name: Build a list of the sosreport filenames to fetch
+      find:
+        paths: '{{ temp_dir }}'
+        file_type: file
+        recurse: no
+        patterns: sosreport*{{ case_id }}-{{ date_frag }}*xz
+      register: sosreport_files
+
+    - debug:
+        msg: '{{ sosreport_files.files }}'
+
+    # We need to do this because the reports are owned by 'root:root' on
+    # the units and we can't pull them back (no root ssh) without +r perms
+    - name: Set permissions of remote sosreport files so we can read them
+      file:
+        path: '{{ item.path }}'  
+        owner: ubuntu
+        group: ubuntu
+        mode: 0644
+      become: yes
+      with_items: '{{ sosreport_files.files }}'
+
+    - name: Fetch the sosreports from the hosts
+      fetch:
+        src: '{{ item.path }}'
+        dest: '{{ temp_dir }}/files/{{ item.path | basename }}'
+        flat: yes
+      with_items: '{{ sosreport_files.files }}'

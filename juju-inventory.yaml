@@ -1,0 +1,47 @@
+[ceph-mon]
+192.168.100.211 ansible_host=192.168.100.211 juju_unit=ceph-mon/0
+192.168.100.212 ansible_host=192.168.100.212 juju_unit=ceph-mon/1
+192.168.100.216 ansible_host=192.168.100.216 juju_unit=ceph-mon/2
+
+[ceph-osd]
+192.168.100.203 ansible_host=192.168.100.203 juju_unit=ceph-osd/0
+192.168.100.204 ansible_host=192.168.100.204 juju_unit=ceph-osd/1
+192.168.100.205 ansible_host=192.168.100.205 juju_unit=ceph-osd/2
+
+[radosgw]
+192.168.100.207 ansible_host=192.168.100.207 juju_unit=ceph-radosgw/0
+
+[cinder]
+192.168.100.210 ansible_host=192.168.100.210 juju_unit=cinder/0
+
+[glance]
+192.168.100.213 ansible_host=192.168.100.213 juju_unit=glance/0
+
+[keystone]
+192.168.100.214 ansible_host=192.168.100.214 juju_unit=keystone/0
+
+[mysql]
+192.168.100.206 ansible_host=192.168.100.206 juju_unit=mysql/0
+
+[neutron-api]
+192.168.100.209 ansible_host=192.168.100.209 juju_unit=neutron-api/0
+
+[neutron-gateway]
+192.168.100.202 ansible_host=192.168.100.202 juju_unit=neutron-gateway/0
+
+[nova-cloud-controller]
+192.168.100.217 ansible_host=192.168.100.217 juju_unit=nova-cloud-controller/0
+
+[nova-compute]
+192.168.100.203 ansible_host=192.168.100.203 juju_unit=nova-compute/0
+192.168.100.204 ansible_host=192.168.100.204 juju_unit=nova-compute/1
+192.168.100.205 ansible_host=192.168.100.205 juju_unit=nova-compute/2
+
+[openstack-dashboard]
+192.168.100.208 ansible_host=192.168.100.208 juju_unit=openstack-dashboard/0
+
+[rabbitmq-server]
+192.168.100.215 ansible_host=192.168.100.215 juju_unit=rabbitmq-server/0
+192.168.100.218 ansible_host=192.168.100.218 juju_unit=rabbitmq-server/1
+192.168.100.219 ansible_host=192.168.100.219 juju_unit=rabbitmq-server/2
+
