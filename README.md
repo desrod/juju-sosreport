@@ -21,7 +21,7 @@ You can then copy this into your inventory file and edit as needed (see juju-inv
 To run the sosreport collection across your units, just run: 
 
 ```
-ansible-playbook -v sosreport.yaml -i juju-inventory.yaml -l ceph-osd
+ansible-playbook -v jsos.yaml -i juju-inventory.yaml -l ceph-osd
 ```
 
 Note that I've limited the collection to the 'ceph-osd' nodes in this specific case. If you don't pass a filter (-l ceph-osd), then it will collect sosreports from ALL of your units, which may not be what you want. 
