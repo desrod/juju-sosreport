@@ -14,24 +14,15 @@
 # Make sure you pass in the correct '-l <host_group>' param to limit
 # collection of the sosreports for those nodes, else it will do ALL
 # nodes in the model
-- hosts: all
 
-  remote_user: ubuntu
+###### First task, runs on the targeted units themselves ######
+- name: Generate, collect and upload sosreports from each unit in the juju controller scope
+  hosts: all
+  # Change this user to one that has ssh access into the units
+  remote_user: '{{ remote_user }}'
   become: yes
-
-  vars: 
-    # Basic knobs and dials to customize sosreport's collection
-    - sos_cmd: sosreport
-    - sos_opt: -a --all-logs --quiet --no-report --batch
-
-    # Limit the file fetch operation to today's reports
-    - date_frag: "{{ lookup('pipe','date +%Y%m%d') }}"
-
-    # Salesforce Case Number
-    - case_id: 0011223344
-
-    # Where to cache the sosreports during/after collection
-    - temp_dir: /tmp/sosreports-{{ case_id }}
+  vars_files:
+    - vars.yaml
 
   tasks:
     - name: Create a directory matching the case_id for the sosreports to land in
@@ -53,7 +44,7 @@
     - name: Set permissions of remote sosreport files so we can read them
       file:
         path: '{{ item.path }}'  
-        owner: ubuntu
+        owner: '{{ remote_user }}'
         group: ubuntu
         mode: 0644
       become: yes
@@ -70,3 +61,35 @@
       file:
         path: '{{ temp_dir }}'
         state: absent
+
+###### Second task, runs exclusively on the controller ######
+- name: Upload sosreports to remote support portal
+  hosts: all
+  connection: local
+  become: no
+  vars_files:
+    - vars.yaml
+
+  tasks:
+    - name: Adding SSH key to your controller to permit uploads
+      delegate_to: localhost
+      authorized_key:
+        user: "{{ lookup('env','USER') }}"
+        state: present
+        key: "{{ lookup('file', 'support.key') }}"
+
+    - name: Create the remote directory for the case in the portal
+      delegate_to: localhost
+      command: bash -c "sshpass -p {{ sftp_user }} sftp -C {{ sftp_user }}@{{ sftp_host }} <<< $'mkdir {{ case_id }}'"
+
+    - name: Upload files to the support portal SFTP site
+      delegate_to: localhost
+      command: bash -c "sshpass -p {{ sftp_user }} sftp -C {{ sftp_user }}@{{ sftp_host }} <<< $'put {{ item.path }} {{ case_id }}'"
+      with_items: '{{ sosreport_files.files }}'
+
+    - name: Removing SSH key from your controller (will be added again at next invocation)
+      delegate_to: localhost
+      authorized_key:
+        user: "{{ lookup('env','USER') }}"
+        state: absent
+        key: "{{ lookup('file', 'support.key') }}"
