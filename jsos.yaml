@@ -31,9 +31,12 @@
     - case_id: 0011223344
 
     # Where to cache the sosreports during/after collection
-    - temp_dir: /tmp
+    - temp_dir: /tmp/sosreports-{{ case_id }}
 
   tasks:
+    - name: Create a directory matching the case_id for the sosreports to land in
+      file: path={{ temp_dir}} state=directory
+
     - name: Create sosreports from each juju unit
       shell: '{{ sos_cmd }} {{ sos_opt }} --tmp-dir={{ temp_dir }} --name={{ juju_unit }} --case-id={{ case_id }}'
 
@@ -42,11 +45,8 @@
         paths: '{{ temp_dir }}'
         file_type: file
         recurse: no
-        patterns: sosreport*{{ case_id }}-{{ date_frag }}*xz
+        patterns: 'sosreport*{{ case_id }}-{{ date_frag }}*xz,sosreport*{{ case_id }}-{{ date_frag }}*md5'
       register: sosreport_files
-
-    - debug:
-        msg: '{{ sosreport_files.files }}'
 
     # We need to do this because the reports are owned by 'root:root' on
     # the units and we can't pull them back (no root ssh) without +r perms
@@ -62,6 +62,11 @@
     - name: Fetch the sosreports from the hosts
       fetch:
         src: '{{ item.path }}'
-        dest: '{{ temp_dir }}/files/{{ item.path | basename }}'
+        dest: '{{ temp_dir }}/{{ item.path | basename }}'
         flat: yes
       with_items: '{{ sosreport_files.files }}'
+
+    - name: Clean out sosreports from the remote units after fetching
+      file:
+        path: '{{ temp_dir }}'
+        state: absent
