@@ -13,7 +13,10 @@ You'll also need to install 'jq' on the juju controller so you can parse the res
 To generate your inventory file, use the following construct: 
 
 ```
-juju status --format json | jq -r '.applications[] | select(has("units"))  | .units | to_entries[] | "\(.value."public-address") ansible_host=\(.value."public-address") juju_unit=\(.key)"'
+juju status --format json | jq -r '.applications[] | select(has("units"))  \
+     | .units | to_entries[] | "\(.value."public-address") \
+     ansible_host=\(.value."public-address") juju_unit=\(.key)"'
+
 ```
 
 You can then copy this into your inventory file and edit as needed (see juju-inventory.yaml here for a working example). 
