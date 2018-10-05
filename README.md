@@ -6,7 +6,7 @@ A quick-and-dirty Ansible playbook to pull sosreports from a deployed juju model
 
 You'll need a working juju model + controller, and ansible installed on the controller itself. 
 
-You'll also need to install 'jq' on the juju controller so you can parse the resulting json it will output. 
+You'll also need to install `jq` on the juju controller so you can parse the resulting json it will output and (at the moment) `sshpass` to use sftp non-interactively. 
 
 ### Getting it going
 
@@ -17,7 +17,7 @@ juju status --format json | jq -r '.applications[] | select(has("units")) | .uni
 
 ```
 
-You can then copy this into your inventory file and edit as needed (see juju-inventory.yaml here for a working example). 
+You can then copy this into your inventory file and edit as needed (see `juju-inventory.yaml` in this repository for a working example). 
 
 To run the sosreport collection across your units, just run: 
 
@@ -25,9 +25,11 @@ To run the sosreport collection across your units, just run:
 ansible-playbook -v jsos.yaml -i juju-inventory.yaml -l ceph-osd
 ```
 
-Note that I've limited the collection to the 'ceph-osd' nodes in this specific case. If you don't pass a filter (-l ceph-osd), then it will collect sosreports from ALL of your units, which may not be what you want. 
+Note that I've limited the collection to the `ceph-osd` nodes in this specific case. If you don't pass a filter (`-l ceph-osd`), then it will collect sosreports from ALL of your units, which may not be what you want. 
 
-After the collection is done, it will fetch those files from the units and put them into /tmp/files/ in your controller. You can change that in the playbook where indicated, if you want a different path. 
+After the collection is done, it will fetch those files from the units and put them into /tmp/sosreport-{case_id}/ in your controller. You can change that in the playbook's `vars.yaml` file where indicated, if you want a different path. 
+
+From there, the collected sosreports will be uploaded to the support portal, using the support user, password and SSH key file to authenticate. They will land in a directory named for the `case_id`, with files depositied inside that directory.
 
 ### TODO
 
