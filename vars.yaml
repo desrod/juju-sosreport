@@ -1,0 +1,31 @@
+############################################################
+# Basic knobs and dials to customize sosreport's collection
+############################################################
+
+# user with ssh access into the units with their key
+remote_user: sosuser
+
+# ansible_ssh_common_args: -o StrictHostKeyChecking=no
+sos_cmd: sosreport
+
+sos_opt: -a --all-logs --quiet --no-report --batch
+# sos_opt: --quiet --no-report --batch
+
+# Limit the file fetch operation to today's reports
+date_frag: "{{ lookup('pipe','date +%Y%m%d') }}"
+
+# Customer Case Number
+case_id: '0011223344'
+
+# Where to cache the sosreports during/after collection
+temp_dir: /tmp/sosreports-{{ case_id }}
+
+# This is the file on disk that contains your SSH key for
+# sftp access
+support_key: 'support.key'
+
+# Credentials to log into the support portal
+sftp_user: sftpuser
+sftp_pass: sftppass
+sftp_host: support.portal.domain.name
+  
