@@ -13,9 +13,7 @@ You'll also need to install 'jq' on the juju controller so you can parse the res
 To generate your inventory file, use the following construct: 
 
 ```
-juju status --format json | jq -r '.applications[] | select(has("units"))  \
-     | .units | to_entries[] | "\(.value."public-address") \
-     ansible_host=\(.value."public-address") juju_unit=\(.key)"'
+juju status --format json | jq -r '.applications[] | select(has("units")) | .units | to_entries[] | "\(.value."public-address") ansible_host=\(.value."public-address") juju_unit=\(.key)"'
 
 ```
 
@@ -33,8 +31,17 @@ After the collection is done, it will fetch those files from the units and put t
 
 ### TODO
 
-- auto-upload of the sosreports to the Canonical SFTP Support portal
 - Better regex for accurate file naming conventions of the remote sosreport files
+- Add support for public-address containing FQDN of the units
+- Auto-generate the inventory file with correct host-group headers
+- Remove dependency for sshpass to log into SFTP non-interactively
+- Implement a cleaner solution to importing the Support Portal SSH key
+
+### COMPLETED TODO ITEMS
+
+- Moved all private vars into vars.yaml, instead of the playbook itself
+- auto-upload of the sosreports to the Canonical SFTP Support portal
+- Removal of the sosreports from the units after they've been fetched (+checksum)
 
 ## Authors
 
