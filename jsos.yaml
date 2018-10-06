@@ -1,9 +1,9 @@
 #####################################################################
-#        _._   
+#        _._
 #       /_ _`.      (c) 2016-2018, David A. Desrosiers
 #       (.(.)|      david dot desrosiers at canonical dot com
-#       |\_/'|   
-#       )____`\     If you find this useful, please drop me     
+#       |\_/'|
+#       )____`\     If you find this useful, please drop me
 #      //_V _\ \    an email, or send me bug reports if you find
 #     ((  |  `(_)   problems with it.
 #    / \> '   / \
@@ -15,18 +15,18 @@
 # collection of the sosreports for those nodes, else it will do ALL
 # nodes in the model
 
-###### First play, runs on the targeted units themselves ######
 - name: Generate, collect and upload sosreports from each unit in the juju controller scope
-  hosts: all
-  # Change this user to one that has ssh access into the units
-  remote_user: '{{ remote_user }}'
-  become: yes
+  hosts: all,!localhost
   vars_files:
     - vars.yaml
 
+  # Change this to a user that can SSH into the juju units
+  remote_user: '{{ remote_user }}'
+  become: yes
+
   tasks:
-    - name: Create a directory matching the case_id for the sosreports to land in
-      file: path={{ temp_dir}} state=directory
+    - name: Create a local cache directory for sosreports to be created within
+      file: path={{ temp_dir }} state=directory
 
     - name: Create sosreports from each juju unit
       shell: '{{ sos_cmd }} {{ sos_opt }} --tmp-dir={{ temp_dir }} --name={{ juju_unit }} --case-id={{ case_id }}'
@@ -36,16 +36,17 @@
         paths: '{{ temp_dir }}'
         file_type: file
         recurse: no
-        patterns: 'sosreport*{{ case_id }}-{{ date_frag }}*xz,sosreport*{{ case_id }}-{{ date_frag }}*md5'
+        patterns: "sosreport-.*{{ case_id }}-{{ date_frag }}.*(?:xz|xz.md5)"
+        use_regex: yes
       register: sosreport_files
 
-    # We need to do this because the reports are owned by 'root:root' on
-    # the units and we can't pull them back (no root ssh) without +r perms
+    # I need to do this because the reports are owned by 'root:root' on
+    # the units and I can't pull them back (no root ssh) without +r perms
     - name: Set permissions of remote sosreport files so we can read them
       file:
-        path: '{{ item.path }}'  
+        path: '{{ item.path }}'
         owner: '{{ remote_user }}'
-        group: ubuntu
+        group: '{{ remote_user }}'
         mode: 0644
       become: yes
       with_items: '{{ sosreport_files.files }}'
@@ -57,41 +58,49 @@
         flat: yes
       with_items: '{{ sosreport_files.files }}'
 
+    # Once we have received the files, we clean out the directory on the unit
+    # so we don't consume the local disk space of the unit or container
     - name: Clean out sosreports from the remote units after fetching
       file:
         path: '{{ temp_dir }}'
         state: absent
 
-###### Second play, runs exclusively on the controller ######
-- name: Upload sosreports to remote support portal
-  hosts: all
-  connection: local
-  become: no
-  vars_files:
-    - vars.yaml
-
-  tasks:
-    - name: Adding SSH key to your controller to permit uploads
+    - name: Add SSH key to the controller to permit uploads to support portal
       delegate_to: localhost
+      connection: local
+      become: no
       authorized_key:
         user: "{{ lookup('env','USER') }}"
         state: present
         key: '{{ item }}'
-      with_file: 
+      with_file:
         - '{{ support_key }}'
 
     - name: Create the remote directory for the case in the portal
       delegate_to: localhost
+      connection: local
+      become: no
+      run_once: yes
       command: bash -c "sshpass -p {{ sftp_user }} sftp -C {{ sftp_user }}@{{ sftp_host }} <<< $'mkdir {{ case_id }}'"
 
     - name: Upload files to the support portal SFTP site
       delegate_to: localhost
-      command: bash -c "sshpass -p {{ sftp_user }} sftp -C {{ sftp_user }}@{{ sftp_host }} <<< $'put {{ item.path }} {{ case_id }}'"
+      connection: local
+      become: no
+      command: bash -c "sshpass -p {{ sftp_user }} sftp -C -c aes128-ctr {{ sftp_user }}@{{ sftp_host }} <<< $'put {{ item.path }} {{ case_id }}'"
       with_items: '{{ sosreport_files.files }}'
 
-    - name: Removing SSH key from your controller (will be added again at next invocation)
+    # I remove the SSH key here because we don't always need or want the SSH key
+    # resident on the machine that this playbook was run on. Idempotency is also
+    # important, so we return the machine to the same state we found it in when
+    # we began.
+    - name: Remove SSH key from your controller (will be added again at next invocation)
       delegate_to: localhost
+      connection: local
+      become: no
       authorized_key:
         user: "{{ lookup('env','USER') }}"
         state: absent
-        key: "{{ lookup('file', 'support.key') }}"
+        key: '{{ item }}'
+      with_file:
+        - '{{ support_key }}'
