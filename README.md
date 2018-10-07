@@ -1,6 +1,6 @@
 # jsos - Juju sosreport collector
 
-A quick-and-dirty Ansible playbook to pull sosreports from a deployed juju model. 
+A quick-and-dirty Ansible playbook to pull sosreports from units running within a deployed juju model and auto-upload those to the Canonical Support SFTP portal.
 
 ### Prerequisites and Dependencies
 
