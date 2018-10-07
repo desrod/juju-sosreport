@@ -13,7 +13,7 @@
 #####################################################################
 # Make sure you pass in the correct '-l <host_group>' param to limit
 # collection of the sosreports for those nodes, else it will do ALL
-# nodes in the model
+# nodes from your inventory file (eg: your entire juju deployment)
 
 - name: Generate, collect and upload sosreports from each unit in the juju controller scope
   hosts: all,!localhost
@@ -60,12 +60,12 @@
 
     # Once we have received the files, we clean out the directory on the unit
     # so we don't consume the local disk space of the unit or container
-    - name: Clean out sosreports from the remote units after fetching
+    - name: Remove sosreports from the juju units after fetching to controller
       file:
         path: '{{ temp_dir }}'
         state: absent
 
-    - name: Add SSH key to the controller to permit uploads to support portal
+    - name: Add support SSH key to the user environment
       delegate_to: localhost
       connection: local
       become: no
@@ -83,18 +83,19 @@
       run_once: yes
       command: bash -c "sshpass -p {{ sftp_user }} sftp -C {{ sftp_user }}@{{ sftp_host }} <<< $'mkdir {{ case_id }}'"
 
-    - name: Upload files to the support portal SFTP site
+    # If the support portal is also an Ansible node, you can use 'copy' instead
+    # of the command + sftp here. In my specific use case, it is not, so I do
+    # it 'raw' with low-level commands.
+    - name: Upload the collected sosreports to the support portal
       delegate_to: localhost
       connection: local
       become: no
       command: bash -c "sshpass -p {{ sftp_user }} sftp -C -c aes128-ctr {{ sftp_user }}@{{ sftp_host }} <<< $'put {{ item.path }} {{ case_id }}'"
       with_items: '{{ sosreport_files.files }}'
 
-    # I remove the SSH key here because we don't always need or want the SSH key
-    # resident on the machine that this playbook was run on. Idempotency is also
-    # important, so we return the machine to the same state we found it in when
-    # we began.
-    - name: Remove SSH key from your controller (will be added again at next invocation)
+    # Idempotency is important, so we return the machine to the same state we 
+    # found it when we started.
+    - name: Remove support SSH key from the user environment
       delegate_to: localhost
       connection: local
       become: no
