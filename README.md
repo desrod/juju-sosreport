@@ -67,7 +67,7 @@ From there, the collected sosreports will be uploaded to the support portal, usi
 
 ## Authors
 
-* David A. Desrosiers <david dot desrosiers at canonical dot com>
+* David A. Desrosiers [mailto](mailto:david.desrosiers@canonical.com)
 
 ## Acknowledgments
 
